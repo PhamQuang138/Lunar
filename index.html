@@ -4,18 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chúc Mừng Năm Mới - Lunar Project</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/TDSLoader.js"></script>
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/animation.css">
 </head>
+
 <body>
     <div id="app-container">
         <canvas id="petal-canvas"></canvas>
         
+        <div id="tree-container-3d"></div>
         <main id="scene">
             <section id="tree-section">
                 <div class="peach-tree-container">
-                    <img src="assets/images/peach-tree-blank.png" alt="Cây Đào" id="peach-tree">
                     
                     <div id="lanterns-wrapper"></div>
                     <div id="envelopes-wrapper"></div>
@@ -26,7 +30,6 @@
                     <div class="jar" onclick="triggerFireworks()"></div>
                 </div>
             </section>
-
             <section id="greeting-section">
                 <canvas id="firework-canvas"></canvas>
             </section>

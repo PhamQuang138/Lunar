@@ -16,6 +16,7 @@ body {
     height: 100vh;
 }
 
+/* Canvas hoa rơi (2D layer) */
 #petal-canvas {
     position: absolute;
     top: 0;
@@ -31,27 +32,63 @@ body {
 }
 
 .peach-tree-container {
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     position: relative;
-    overflow: hidden;
+    z-index: 10; /* Nổi lên trên cây 3D */
+    
+    /* --- BẮT BUỘC THÊM ĐOẠN NÀY --- */
+    /* Tạo chiều cao cố định để giữ chỗ cho icon */
+    height: 85vh; 
+    
+    /* Giữ tỷ lệ khung hình giống cây thật (Ví dụ: rộng = 3/4 cao) */
+    aspect-ratio: 3/4; 
+    
+    /* Căn giữa màn hình */
+    margin: 0 auto; 
+    /* ------------------------------ */
 }
 
-#peach-tree {
-    max-height: 90%;
-    width: auto;
-    position: relative;
-    top: 52px
+/* --- UPDATE CHO 3D TREE --- */
+/* Container chứa cây 3D (Three.js) */
+#tree-container-3d {
+    position: fixed; /* Cố định vị trí, không chạy lung tung */
+    top: 0;
+    left: 0;
+    width: 100vw; /* Chiếm 100% chiều rộng màn hình */
+    height: 100vh; /* Chiếm 100% chiều cao màn hình */
+    z-index: 1; /* Nằm dưới cùng làm nền */
+    pointer-events: none; /* Cho phép click chuột xuyên qua vào các icon */
 }
+
+/* Ảnh gốc (nếu còn trong HTML) sẽ bị ẩn đi */
+#peach-tree {
+    opacity: 0; 
+    pointer-events: none;
+    position: absolute; /* Đảm bảo nó không chiếm chỗ layout */
+}
+
+/* Đảm bảo icon Lì xì/Đèn phủ kín khung chứa */
+#lanterns-wrapper, #envelopes-wrapper {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+/* Đẩy hũ pháo lên cao một chút (tùy chỉnh nếu bị che) */
+.firework-jars {
+    z-index: 20; 
+    bottom: 10%; 
+}
+
+/* -------------------------- */
 
 .decoration-item {
     position: absolute;
     transform: translate(-50%, -50%);
     cursor: pointer;
     z-index: 10;
-    transition: filter 0.3s;
+    transition: filter 0.3s, opacity 0.5s ease; /* Thêm transition opacity */
 }
 
 .decoration-item:hover {
@@ -64,7 +101,7 @@ body {
     transform: translate(-50%, -50%); 
     cursor: pointer;
     z-index: 20;
-    transition: all 0.3s;
+    transition: all 0.3s, opacity 0.5s ease; /* Thêm transition opacity */
 }
 
 .envelope:hover {
@@ -73,7 +110,7 @@ body {
     border-radius: 5px;
 }
 
-/* pháo hoa dưới gốc */
+/* Pháo hoa dưới gốc */
 .firework-jars {
     position: absolute;
     bottom: 13%; 
@@ -85,19 +122,31 @@ body {
 }
 
 .jar {
-    width: 35px;
-    height: 75px;
+    width: 30px;
+    height: 45px;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0); 
-    transition: all 0.2s;
+    transition: all 0.2s, opacity 0.5s ease; /* Thêm transition opacity */
+    position: relative;
+    left: -5px;
+    top: 0px;
+    background-image: url('../assets/images/PhaoHoa.png'); 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center center;
 }
 
 .jar:hover {
-    background: rgba(255, 215, 0, 0.2);
+    background-color: rgba(255, 215, 0, 0.2);
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
 }
 
-/* lời chúc */
+/* Class ẩn icon khi nổ cây (Dùng chung cho cả Lì xì, Đèn, Pháo) */
+.jar-hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Modal Lời chúc */
 #wish-modal {
     position: fixed;
     inset: 0;
