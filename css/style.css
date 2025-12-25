@@ -146,6 +146,60 @@ body {
     pointer-events: none !important;
 }
 
+#firework-trigger-btn {
+    position: fixed;
+    right: 20px; /* Sát viền phải */
+    bottom: 15%; /* Độ cao vừa tầm tay thuận */
+    width: 70px;
+    height: 70px;
+    background: var(--primary-red);
+    border: 3px solid var(--gold);
+    border-radius: 50%; /* Hình tròn cho thân thiện */
+    cursor: pointer;
+    z-index: 100; /* Luôn nằm trên cùng */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+#firework-trigger-btn img {
+    width: 30px;
+    height: auto;
+    margin-bottom: 2px;
+}
+
+#firework-trigger-btn span {
+    color: var(--gold);
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* Hiệu ứng khi di chuột vào hoặc nhấn */
+#firework-trigger-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+    background: #b71c1c;
+}
+
+#firework-trigger-btn:active {
+    transform: scale(0.9);
+}
+
+@keyframes pulse-gold {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(255, 215, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+}
+
+#firework-trigger-btn {
+    animation: pulse-gold 2s infinite;
+}
+
 /* Modal Lời chúc */
 #wish-modal {
     position: fixed;

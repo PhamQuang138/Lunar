@@ -30,15 +30,40 @@
 }
 
 /* Hiệu ứng phóng to bao lì xì khi mở */
-@keyframes zoomIn {
-    from {
-        opacity: 0;
-        transform: scale(0.5) translateY(100px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+/* Hiệu ứng mượt mà cho Modal */
+#wish-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: background 0.5s ease;
+    pointer-events: none;
+}
+
+#wish-modal.active {
+    background: rgba(0, 0, 0, 0.85);
+    pointer-events: auto;
+}
+
+/* Lì xì bay và phóng to */
+.envelope-zoom {
+    transform: scale(0) translateY(100px);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 0;
+}
+
+#wish-modal.active .envelope-zoom {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+/* Hiệu ứng lấp lánh cho bao lì xì */
+.envelope-zoom img {
+    filter: drop-shadow(0 0 20px var(--gold));
+    max-width: 250px;
 }
 
 /* Hiệu ứng đốm sáng lơ lửng (thay cho bóng bay) */

@@ -45,11 +45,14 @@ function animate() {
 animate();
 
 // Tương tác Lì xì
-window.openLixi = () => {
-    openLixiSound.play().catch(e => console.log("Chờ tương tác"));
+window.openLixi = (element) => {
+    openLixiSound.play().catch(() => {});
+    
     const modal = document.getElementById('wish-modal');
     const wishText = document.getElementById('wish-text');
-    wishText.innerText = wishes[Math.floor(Math.random() * wishes.length)];
+    const randomWish = wishes[Math.floor(Math.random() * wishes.length)];
+    
+    wishText.innerText = randomWish;
     modal.classList.add('active');
 };
 
@@ -57,24 +60,46 @@ window.closeWish = () => {
     document.getElementById('wish-modal').classList.remove('active');
 };
 
-// Hàm xử lý pháo hoa
-window.triggerFireworks = () => {
-    const jarContainer = document.querySelector('.firework-jars'); 
-    if (jarContainer) jarContainer.classList.add('jar-hidden');
+window.closeWish = () => {
+    document.getElementById('wish-modal').classList.remove('active');
+};
 
-    fireworkSound.play().catch(e => console.log("Chưa tương tác"));
+// js/app.js
+
+window.triggerFireworks = () => {
+    // 1. Lấy các phần tử cần ẩn để màn hình "sạch" khi xem pháo
+    const jarContainer = document.querySelector('.firework-jars'); 
+    const fireworkBtn = document.getElementById('firework-trigger-btn');
+    const decorations = document.querySelector('#envelopes-wrapper'); // Ẩn lì xì trên cây 3D
+
+    // 2. Thực hiện ẩn UI và phát âm thanh
+    if (jarContainer) jarContainer.classList.add('jar-hidden');
+    if (fireworkBtn) fireworkBtn.classList.add('ui-hidden');
+    if (decorations) decorations.style.opacity = '0';
+
+    const sound = new Audio('assets/audio/firework.mp3');
+    sound.play().catch(e => console.log("Cần tương tác với trang để phát nhạc"));
+
+    // 3. Dịch chuyển màn hình lên khu vực pháo hoa
     const scene = document.getElementById('scene');
     scene.style.transform = 'translateY(-100vh)'; 
     
     setTimeout(() => {
+        // Lấy lời chúc ngẫu nhiên và kích hoạt hiệu ứng 'text'
+        // Chữ sẽ tự động Cong và Lấp Lánh nhờ logic em đã viết trong FireworkSystem.js
         const randomWish = wishes[Math.floor(Math.random() * wishes.length)];
         fireworks.explode(randomWish, 'text'); 
     }, 1000);
     
+    // 4. Kết thúc và trả về trạng thái cũ sau 10 giây
     setTimeout(() => {
         fireworks.stop(); 
         scene.style.transform = 'translateY(0)'; 
+        
+        // Hiện lại các phần tử UI
         if (jarContainer) jarContainer.classList.remove('jar-hidden');
+        if (fireworkBtn) fireworkBtn.classList.remove('ui-hidden');
+        if (decorations) decorations.style.opacity = '1';
     }, 10000);
 };
 
