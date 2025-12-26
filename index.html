@@ -6,7 +6,9 @@
     <title>Chúc Mừng Năm Mới - Lunar Project</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/TDSLoader.js"></script>
+    
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/animation.css">
@@ -17,10 +19,12 @@
         <canvas id="petal-canvas"></canvas>
         
         <div id="tree-container-3d"></div>
+
+        <canvas id="firework-canvas"></canvas>
+
         <main id="scene">
             <section id="tree-section">
                 <div class="peach-tree-container">
-                    
                     <div id="lanterns-wrapper"></div>
                     <div id="envelopes-wrapper"></div>
                 </div>
@@ -30,16 +34,17 @@
                     <div class="jar" onclick="triggerFireworks()"></div>
                 </div>
             </section>
-            <section id="greeting-section">
-                <canvas id="firework-canvas"></canvas>
-            </section>
         </main>
 
-        <div id="wish-modal" class="hidden">
+        <div id="firework-trigger-btn" onclick="triggerFireworks()">
+            <span>Pháo Hoa</span>
+        </div>
+
+        <div id="wish-modal">
             <div class="envelope-zoom">
                 <img src="assets/images/lixi-open.png" alt="Lì xì">
-                <p id="wish-text"></p>
-                <button onclick="closeWish()">Đóng</button>
+                <p id="wish-text">Chúc mừng năm mới!</p>
+                <button onclick="closeWish()" style="margin-top:15px; padding: 5px 20px; cursor:pointer;">Đóng</button>
             </div>
         </div>
     </div>

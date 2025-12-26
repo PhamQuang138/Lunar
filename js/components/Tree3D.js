@@ -7,13 +7,20 @@ export class Tree3D {
 
         this.state = 'TREE'; 
         this.isReady = false;
+        this.controls = null;
+        this.decorations = []; 
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.hoveredObj = null; 
         
-        // Bảng màu Hài Hòa & Nghệ Thuật
+        // Cờ hiệu: Đang bắn pháo hoa hay không?
+        this.isFireworkMode = false; 
+
         this.colors = {
-            flower: new THREE.Color(0xff69b4), // Hồng đào
-            petal: new THREE.Color(0xffb7c5),  // Hồng phấn
-            gold: new THREE.Color(0xffcc00),   // Vàng nghệ
-            trunk: new THREE.Color(0x4a3728)   // Nâu cà phê
+            flower: new THREE.Color(0xff69b4), 
+            petal: new THREE.Color(0xffb7c5),  
+            gold: new THREE.Color(0xffcc00),   
+            trunk: new THREE.Color(0x4a3728)   
         };
 
         this.init();
@@ -25,7 +32,7 @@ export class Tree3D {
 
         this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 5000);
         this.camera.position.set(0, 40, 380); 
-        this.camera.lookAt(0, 90, 0); // Nhìn cao lên một chút
+        this.camera.lookAt(0, 80, 0); 
 
         this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -34,20 +41,107 @@ export class Tree3D {
         this.renderer.domElement.style.position = 'absolute';
         this.renderer.domElement.style.top = '0';
         this.renderer.domElement.style.left = '0';
-        this.renderer.domElement.style.pointerEvents = 'none';
+        this.renderer.domElement.style.pointerEvents = 'auto'; 
         this.container.appendChild(this.renderer.domElement);
+
+        if (THREE.OrbitControls) {
+            this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+            this.controls.enableDamping = true;
+            this.controls.dampingFactor = 0.05;
+            this.controls.enableZoom = true;
+            this.controls.autoRotate = false;
+            this.controls.maxPolarAngle = Math.PI / 2 + 0.1;
+        }
 
         const ambient = new THREE.AmbientLight(0xffffff, 1.2);
         this.scene.add(ambient);
 
         this.loadModel();
-        this.animate();
-
+        
+        window.addEventListener('click', (e) => this.onMouseClick(e));
+        window.addEventListener('mousemove', (e) => this.onMouseMove(e));
         window.addEventListener('resize', () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
+        this.animate();
+    }
+
+    onMouseMove(event) {
+        this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    onMouseClick(event) {
+        if (this.state !== 'TREE') return; 
+
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.decorations);
+
+        if (intersects.length > 0) {
+            const object = intersects[0].object;
+            // Chỉ click được khi vật thể đang hiện rõ
+            if (object.material.opacity > 0.5 && object.userData.type === 'lixi') {
+                if (window.openLixi) window.openLixi(); 
+                
+                const originalS = object.userData.originalScale || 15;
+                let scaleUp = 1.0;
+                object.scale.set(originalS * 1.2, originalS * 1.3 * 1.2, 1);
+
+                const bounce = setInterval(() => {
+                    scaleUp += 0.15;
+                    object.scale.set(originalS * scaleUp, originalS * 1.3 * scaleUp, 1);
+                    if (scaleUp >= 1.5) { 
+                        clearInterval(bounce);
+                        object.scale.set(originalS, originalS * 1.33, 1);
+                    }
+                }, 16);
+            }
+        }
+    }
+
+    updateHoverEffects() {
+        if (this.state !== 'TREE') {
+            this.container.style.cursor = 'default';
+            if (this.hoveredObj) {
+                const s = this.hoveredObj.userData.originalScale;
+                this.hoveredObj.scale.set(s, s * 1.33, 1);
+                this.hoveredObj.material.color.setHex(0xffffff); 
+                this.hoveredObj = null;
+            }
+            return;
+        }
+
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.decorations);
+
+        if (intersects.length > 0) {
+            const object = intersects[0].object;
+            if (object.material.opacity > 0.5) {
+                if (this.hoveredObj !== object) {
+                    if (this.hoveredObj) {
+                        const s = this.hoveredObj.userData.originalScale;
+                        this.hoveredObj.scale.set(s, s * 1.33, 1);
+                        this.hoveredObj.material.color.setHex(0xffffff);
+                    }
+                    this.hoveredObj = object;
+                    this.container.style.cursor = 'pointer';
+                    const s = object.userData.originalScale;
+                    object.scale.set(s * 1.2, s * 1.33 * 1.2, 1);
+                    object.material.color.setHex(0xffffee); 
+                }
+            }
+        } else {
+            if (this.hoveredObj) {
+                const s = this.hoveredObj.userData.originalScale;
+                this.hoveredObj.scale.set(s, s * 1.33, 1);
+                this.hoveredObj.material.color.setHex(0xffffff);
+                this.hoveredObj = null;
+                this.container.style.cursor = 'default';
+            }
+        }
     }
 
     createSoftTexture() {
@@ -64,12 +158,10 @@ export class Tree3D {
     }
 
     loadModel() {
-        if (typeof THREE.TDSLoader === 'undefined') return;
+        if (!THREE.TDSLoader) return;
         const loader = new THREE.TDSLoader();
         loader.setResourcePath('./assets/3dmodel/');
-
         loader.load(this.modelUrl, (object) => {
-            console.log("Creating Fused Root Giant Tree...");
             object.rotation.x = -Math.PI / 2;
             object.updateMatrixWorld(true);
             this.processParticles(object);
@@ -78,12 +170,12 @@ export class Tree3D {
 
     processParticles(object) {
         const positions = [];
-        const targetTree = [];
-        const targetExplode = [];
         const colors = [];
         const sizes = [];
+        
+        const targetTreeArr = [];
+        const targetExplodeArr = [];
 
-        // 1. Quét tam giác
         let allTriangles = [];
         object.traverse((child) => {
             if (child.isMesh) {
@@ -107,7 +199,6 @@ export class Tree3D {
 
         if (allTriangles.length === 0) return;
 
-        // 2. Tính toán
         const min = new THREE.Vector3(Infinity, Infinity, Infinity);
         const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
         const stepSample = Math.max(1, Math.floor(allTriangles.length / 2000));
@@ -117,167 +208,202 @@ export class Tree3D {
             max.max(t.a).max(t.b).max(t.c);
         }
 
-        const size = new THREE.Vector3().subVectors(max, min);
         const center = new THREE.Vector3().addVectors(min, max).multiplyScalar(0.5);
-        
-        const DESIRED_HEIGHT = 320; 
-        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        const DESIRED_HEIGHT = 360; 
+        const maxDim = Math.max(max.x - min.x, max.y - min.y, max.z - min.z) || 1;
         const scale = DESIRED_HEIGHT / maxDim;
-        const scaledHeight = size.y * scale;
-        
-        const bottomY = -70; 
+        const scaledHeight = (max.y - min.y) * scale;
+        const bottomY = -100; 
         const yOffset = bottomY - (min.y - center.y) * scale;
 
-        // Số lượng hạt lớn cho 3 cây
+        const possibleHangingPoints = [];
         const MAX_PARTICLES = 90000; 
         let density = Math.floor(MAX_PARTICLES / allTriangles.length / 3); 
-        if (density < 2) density = 2;
-        if (density > 20) density = 20;
+        if (density < 2) density = 2; if (density > 20) density = 20;
 
-        // --- HÀM THÊM HẠT (CÓ HÀN GỐC) ---
         const addParticle = (p, angleOffset) => {
             if (positions.length / 3 >= MAX_PARTICLES) return;
-
-            // 1. Tọa độ gốc
             let tx = (p.x - center.x) * scale;
             let ty = (p.y - center.y) * scale + yOffset;
             let tz = (p.z - center.z) * scale;
-
             const relativeY = ty - bottomY;
-            const heightRatio = relativeY / scaledHeight; // 0 ở gốc, 1 ở ngọn
-
-            // 2. HIỆU ỨNG PHÌNH TO (Flare) - Cho phần tán
+            const heightRatio = relativeY / scaledHeight;
             const flareFactor = 1.0 + (heightRatio * 1.0); 
-            tx *= flareFactor;
-            tz *= flareFactor;
-
-            // 3. XOAY QUANH TRỤC
+            tx *= flareFactor; tz *= flareFactor;
             const cosA = Math.cos(angleOffset);
             const sinA = Math.sin(angleOffset);
             let rotatedX = tx * cosA - tz * sinA;
             let rotatedZ = tx * sinA + tz * cosA;
-
-            // === 4. THUẬT TOÁN HÀN GỐC (ROOT FUSION) ===
-            // Vùng hàn: 20% dưới cùng của cây
             const FUSION_THRESHOLD = 0.30; 
-            
             if (heightRatio < FUSION_THRESHOLD) {
-                // Tính lực hút: 1.0 ở đáy, 0.0 ở ngưỡng 20%
-                // Dùng bình phương để lực hút mạnh hơn ở sát đáy
                 const fusionStrength = Math.pow(1.0 - (heightRatio / FUSION_THRESHOLD), 2);
-                
-                // Ép tọa độ X và Z về gần 0 dựa trên lực hút
-                // Giữ lại một phần nhỏ (0.2) để gốc vẫn có độ dày, không bị bóp dẹt thành 1 đường thẳng
                 const compression = (1.0 - fusionStrength) + 0.2 * fusionStrength;
-                
-                rotatedX *= compression;
-                rotatedZ *= compression;
+                rotatedX *= compression; rotatedZ *= compression;
             }
-            // ============================================
-
-            tx = rotatedX;
-            tz = rotatedZ;
-
-            // 5. MÀU SẮC & SIZE
+            tx = rotatedX; tz = rotatedZ;
             const distCenter = Math.sqrt(tx * tx + tz * tz); 
             let r, g, b, s;
             let isTrunk = false;
-
-            // Định nghĩa lõi thân cây
             const coreRadius = (35 * flareFactor) * (1 - heightRatio * 0.9); 
-            
-            // Ở đáy (dưới 10%) thì chắc chắn là thân để đảm bảo gốc đặc
-            if (heightRatio < 0.1 || distCenter < coreRadius) {
-                isTrunk = true;
-            }
-
+            if (heightRatio < 0.2 || distCenter < coreRadius) isTrunk = true;
             if (isTrunk) {
-                // Thân nâu
                 r = this.colors.trunk.r; g = this.colors.trunk.g; b = this.colors.trunk.b;
                 s = 3.0; 
-                // Jitter cực thấp cho gốc để tạo khối đặc
                 const j = heightRatio < 0.1 ? 0.2 : 0.5;
-                tx += (Math.random() - 0.5) * j;
-                ty += (Math.random() - 0.5) * j;
-                tz += (Math.random() - 0.5) * j;
+                tx += (Math.random() - 0.5) * j; ty += (Math.random() - 0.5) * j; tz += (Math.random() - 0.5) * j;
             } else {
-                // Tán lá
                 const j = 2.5;
-                tx += (Math.random() - 0.5) * j;
-                ty += (Math.random() - 0.5) * j;
-                tz += (Math.random() - 0.5) * j;
-
+                tx += (Math.random() - 0.5) * j; ty += (Math.random() - 0.5) * j; tz += (Math.random() - 0.5) * j;
                 if (Math.random() > 0.97) { 
-                    r = this.colors.gold.r; g = this.colors.gold.g; b = this.colors.gold.b;
-                    s = 6.0; 
+                    r = this.colors.gold.r; g = this.colors.gold.g; b = this.colors.gold.b; s = 6.0; 
                 } else { 
                     const c = Math.random() > 0.5 ? this.colors.flower : this.colors.petal;
-                    r = c.r; g = c.g; b = c.b;
-                    s = 5.0 + Math.random(); 
+                    r = c.r; g = c.g; b = c.b; s = 5.0 + Math.random(); 
+                }
+                if (heightRatio > 0.3 && distCenter > 40) {
+                    possibleHangingPoints.push(new THREE.Vector3(tx, ty, tz));
                 }
             }
-
-            targetTree.push(tx, ty, tz);
             positions.push(tx, ty, tz);
-
-            const exR = 1200 * Math.cbrt(Math.random());
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            targetExplode.push(
-                exR * Math.sin(phi) * Math.cos(theta),
-                exR * Math.sin(phi) * Math.sin(theta),
-                exR * Math.cos(phi)
-            );
-
+            targetTreeArr.push(tx, ty, tz);
             colors.push(r, g, b);
             sizes.push(s);
         };
 
-        // --- TẠO 3 BẢN SAO XOAY VÒNG ---
-        const angles = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3]; // 0, 120, 240 độ
-
+        const angles = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3]; 
         allTriangles.forEach(t => {
-            angles.forEach(angle => {
-                addParticle(t.a, angle); addParticle(t.b, angle); addParticle(t.c, angle);
-            });
+            angles.forEach(angle => { addParticle(t.a, angle); addParticle(t.b, angle); addParticle(t.c, angle); });
             for(let k = 0; k < density; k++) {
                 const r1 = Math.random(); const r2 = Math.random(); const sqrtR1 = Math.sqrt(r1);
-                const randomPoint = new THREE.Vector3()
-                    .copy(t.a).multiplyScalar(1 - sqrtR1)
-                    .addScaledVector(t.b, sqrtR1 * (1 - r2))
-                    .addScaledVector(t.c, sqrtR1 * r2);
+                const randomPoint = new THREE.Vector3().copy(t.a).multiplyScalar(1 - sqrtR1).addScaledVector(t.b, sqrtR1 * (1 - r2)).addScaledVector(t.c, sqrtR1 * r2);
                 angles.forEach(angle => { addParticle(randomPoint, angle); });
             }
         });
+
+        // --- CẬP NHẬT: TÍNH ĐIỂM NỔ "LOẠN XẠ" (CHAOS) ---
+        for(let i=0; i < positions.length; i+=3) {
+            // Logic Nổ Tung: Dùng tọa độ cầu ngẫu nhiên
+            // Hạt sẽ bay theo hướng bất kỳ tạo thành quả cầu bụi khổng lồ
+            const exR = 1000 * Math.cbrt(Math.random()); // Bán kính nổ ~1000
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+
+            targetExplodeArr.push(
+                exR * Math.sin(phi) * Math.cos(theta),
+                exR * Math.sin(phi) * Math.sin(theta),
+                exR * Math.cos(phi)
+            );
+        }
 
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
-        geometry.userData = { targetTree, targetExplode };
+        
+        geometry.userData = { targetTree: targetTreeArr, targetExplode: targetExplodeArr };
 
         const material = new THREE.PointsMaterial({
-            size: 3,
-            vertexColors: true,
-            map: this.createSoftTexture(),
-            blending: THREE.NormalBlending, 
-            depthWrite: false, 
-            transparent: true,
-            opacity: 0.75, // Tăng nhẹ độ đậm
+            size: 3, vertexColors: true, map: this.createSoftTexture(),
+            blending: THREE.NormalBlending, depthWrite: false, transparent: true, 
+            opacity: 1.0, 
             sizeAttenuation: true
         });
 
         this.particleSystem = new THREE.Points(geometry, material);
         this.scene.add(this.particleSystem);
         this.isReady = true;
+
+        this.addDecorations(possibleHangingPoints);
+    }
+
+    addDecorations(validPoints) {
+        if (validPoints.length === 0) return;
+        const textureLoader = new THREE.TextureLoader();
+        const lixiTex = textureLoader.load('./assets/images/lixi.png');
+        const lanternTex = textureLoader.load('./assets/images/lantern.png');
+        const lixiMat = new THREE.SpriteMaterial({ map: lixiTex, transparent: true, depthTest: false });
+        const lanternMat = new THREE.SpriteMaterial({ map: lanternTex, transparent: true, depthTest: false });
+        const zones = { left: [], right: [], center: [], top: [] };
+        validPoints.forEach(p => {
+            if (p.y > 80) zones.top.push(p);
+            else if (p.x < -60) zones.left.push(p);
+            else if (p.x > 60) zones.right.push(p);
+            else zones.center.push(p);
+        });
+        const getPointInZone = (zoneName) => {
+            const zone = zones[zoneName];
+            return (zone && zone.length > 0) ? zone[Math.floor(Math.random() * zone.length)] : validPoints[Math.floor(Math.random() * validPoints.length)];
+        };
+        const createItem = (type, position, scale) => {
+            const mat = type === 'lixi' ? lixiMat.clone() : lanternMat.clone(); 
+            const sprite = new THREE.Sprite(mat);
+            const treePos = new THREE.Vector3(position.x, position.y - 5, position.z);
+            
+            // --- CẬP NHẬT DECOR: NỔ LOẠN XẠ LUÔN ---
+            // Không nhân tọa độ nữa mà random vị trí luôn để khớp với độ "li ti" của cây
+            const explodePos = new THREE.Vector3(
+                (Math.random() - 0.5) * 800,
+                (Math.random() - 0.5) * 800,
+                (Math.random() - 0.5) * 800
+            );
+
+            sprite.position.copy(treePos);
+            sprite.scale.set(scale.x, scale.y, 1);
+            sprite.userData = { type: type, originalScale: scale.x, targetTree: treePos, targetExplode: explodePos };
+            this.scene.add(sprite);
+            this.decorations.push(sprite);
+        };
+        for(let i=0; i<2; i++) createItem('lantern', getPointInZone('left'), {x:35, y:35});
+        for(let i=0; i<2; i++) createItem('lantern', getPointInZone('right'), {x:35, y:35});
+        createItem('lantern', getPointInZone('top'), {x:40, y:40});
+        for(let i=0; i<5; i++) createItem('lixi', getPointInZone('left'), {x:20, y:28});
+        for(let i=0; i<5; i++) createItem('lixi', getPointInZone('right'), {x:20, y:28});
+        for(let i=0; i<6; i++) createItem('lixi', getPointInZone('center'), {x:22, y:30});
     }
 
     toggle() {
         this.state = (this.state === 'TREE') ? 'EXPLODED' : 'TREE';
+        this.container.style.cursor = 'default';
+        this.hoveredObj = null;
     }
 
     animate() {
         requestAnimationFrame(() => this.animate());
+        if (this.controls) this.controls.update();
+        this.updateHoverEffects();
+        const time = Date.now() * 0.002;
+        
+        let targetOpacity = 1.0; 
+        
+        if (this.state === 'EXPLODED') {
+            if (this.isFireworkMode) targetOpacity = 0.0; // Pháo hoa -> Biến mất
+            else targetOpacity = 1.0; // Space -> Hiện rõ (nổ li ti)
+        } else {
+            targetOpacity = 1.0;
+        }
+        
+        if (this.particleSystem) {
+             const currentOp = this.particleSystem.material.opacity;
+             this.particleSystem.material.opacity += (targetOpacity - currentOp) * 0.05;
+        }
+
+        const decorSpeed = 0.08; 
+        this.decorations.forEach((d, i) => {
+            const target = (this.state === 'TREE') ? d.userData.targetTree : d.userData.targetExplode;
+            
+            d.position.x += (target.x - d.position.x) * decorSpeed;
+            d.position.y += (target.y - d.position.y) * decorSpeed;
+            d.position.z += (target.z - d.position.z) * decorSpeed;
+
+            if (this.state === 'TREE' && d.position.distanceTo(target) < 10) {
+                d.position.y += Math.sin(time + i) * 0.05;
+            }
+            
+            if (this.particleSystem) {
+                d.material.opacity = this.particleSystem.material.opacity;
+            }
+        });
+
         if (!this.isReady || !this.particleSystem) return;
 
         const positions = this.particleSystem.geometry.attributes.position.array;
@@ -285,10 +411,7 @@ export class Tree3D {
             ? this.particleSystem.geometry.userData.targetTree 
             : this.particleSystem.geometry.userData.targetExplode;
 
-        const speed = 0.05;
-
-        if (this.state === 'TREE') this.particleSystem.rotation.y += 0.002;
-        else this.particleSystem.rotation.y += 0.0005;
+        const speed = 0.1;
 
         for (let i = 0; i < positions.length; i++) {
             positions[i] += (targets[i] - positions[i]) * speed;
