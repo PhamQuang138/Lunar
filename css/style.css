@@ -80,6 +80,52 @@ body {
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
 }
 
+/* --- SỬA NÚT UPLOAD (Dấu cộng nét đứt) --- */
+#upload-container {
+    position: fixed;
+    right: 20px;
+    bottom: calc(15% + 85px); /* Nằm trên nút Bắn Pháo */
+    z-index: 200; /* Z-index cực cao để không bị cây 3D che mất */
+}
+
+#upload-btn {
+    width: 70px;
+    height: 70px;
+    background: transparent;
+    border: 2px dashed var(--gold); /* Nét đứt màu vàng */
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+#upload-btn .plus-icon {
+    font-size: 28px;
+    color: var(--gold);
+    line-height: 1;
+}
+
+#upload-btn span {
+    font-size: 9px;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+#upload-btn:hover {
+    background: rgba(255, 215, 0, 0.1);
+    transform: scale(1.05);
+}
+
+/* Ẩn container khi đang xem pháo hoa */
+#upload-container.ui-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
 /* Nút kích hoạt pháo hoa góc phải */
 #firework-trigger-btn {
     position: fixed;
@@ -119,7 +165,8 @@ body {
 #wish-modal {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.85);
+    background: rgba(26, 10, 10, 0.9);
+    backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -135,14 +182,32 @@ body {
 }
 
 .envelope-zoom {
-    background: #fff;
-    padding: 30px;
-    border-radius: 15px;
+    transform: scale(0); 
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+    padding: 40px;
+    border-radius: 20px;
+    border: 3px solid #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.4), inset 0 0 15px rgba(255, 215, 0, 0.2);
     text-align: center;
-    max-width: 80%;
-    border: 5px solid var(--gold);
-    transform: scale(0) translateY(100px);
-    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 400px;
+    position: relative;
+    overflow: hidden;
+}
+
+.envelope-zoom::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,215,0,0.1), transparent);
+    transform: rotate(45deg);
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
 }
 
 #wish-modal.active .envelope-zoom {
@@ -150,10 +215,11 @@ body {
 }
 
 #wish-text {
-    font-size: 1.5rem;
-    color: var(--primary-red);
-    margin: 20px 0;
-    font-weight: bold;
+    font-family: 'Dancing Script', cursive;
+    font-size: 1.8rem;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    line-height: 1.4;
 }
 
 /* Animation */
@@ -192,4 +258,26 @@ body {
 /* Đảm bảo cây luôn hiển thị ở lớp dưới */
 #tree-container-3d {
     z-index: 1;
+}
+
+/* --- HIỆU ỨNG CHO CON NGỰA 2026 --- */
+#horse-image {
+    position: absolute;
+    top: 60%; /* Chỉnh vị trí nằm dưới chữ pháo hoa */
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    width: 350px; /* To và rõ ràng theo ý anh */
+    height: auto;
+    z-index: 40; /* Nằm trên cây (1) nhưng dưới pháo hoa (50) */
+    opacity: 0; /* Mặc định ẩn */
+    filter: blur(20px); /* Mặc định mờ */
+    transition: all 2.5s ease-out; /* Hiện rõ dần trong 2.5 giây */
+    pointer-events: none;
+}
+
+/* Khi nổ pháo hoa, JS sẽ thêm class 'visible' để hiện hình */
+#horse-image.visible {
+    opacity: 1 !important;
+    filter: blur(0px) !important;
+    transform: translate(-50%, -50%) scale(1) !important;
 }

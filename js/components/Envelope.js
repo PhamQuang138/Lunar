@@ -30,7 +30,7 @@ export class Envelope {
             
             img.onclick = (e) => {
                 e.stopPropagation();
-                this.onClick();
+                this.onClick(e.target); // Truyền element được click vào
             };
             this.container.appendChild(img);
         });

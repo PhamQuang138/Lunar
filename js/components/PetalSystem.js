@@ -24,7 +24,7 @@ export class PetalSystem {
     }
 
     update() {
-        if (this.petals.length < 30) { // Giữ mật độ thưa như anh muốn
+        if (this.petals.length < 30) {
             this.petals.push(this.createPetal());
         }
 
