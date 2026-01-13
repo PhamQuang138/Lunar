@@ -10,47 +10,35 @@ const petals = new PetalSystem(petalCanvasId);
 const lightDots = new LightDotSystem(petalCanvasId);
 const fireworks = new FireworkSystem('firework-canvas');
 
-// Khởi tạo âm thanh
 const fireworkSound = new Audio('./assets/audio/firework.mp3');
 const openLixiSound = new Audio('./assets/audio/paper-rip.mp3');
 fireworkSound.volume = 0.6;
 openLixiSound.volume = 0.8;
 
-// Khởi tạo cây 3D
+// Khởi tạo cây đào (Né hoàn toàn logic bên trong để anh xoay cây đào thoải mái)
 const tree3D = new Tree3D('tree-container-3d');
 
-// --- 2. QUẢN LÝ ẢNH KỶ NIỆM (USER PHOTOS) ---
-let userPhotos = []; // Mảng lưu tối đa 10 ảnh
+// Trạng thái giao diện
+let isFireworkSpace = false; 
+let hasStartedShow = false;
+let flareInterval = null; 
+let userPhotos = [];
 
-// Lắng nghe sự kiện upload ảnh
+// --- 2. QUẢN LÝ ẢNH KỶ NIỆM ---
 const photoInput = document.getElementById('photo-upload');
-const uploadBtn = document.getElementById('upload-btn');
-
 if (photoInput) {
-    photoInput.addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
-        const remainingSlots = 10 - userPhotos.length;
-        const filesToAdd = files.slice(0, remainingSlots);
-
-        filesToAdd.forEach(file => {
+    photoInput.addEventListener('change', function (e) {
+        const files = Array.from(e.target.files).slice(0, 10 - userPhotos.length);
+        files.forEach(file => {
             const reader = new FileReader();
-            reader.onload = (event) => {
-                userPhotos.push(event.target.result);
-                // Nếu đủ 10 ảnh thì ẩn nút upload
-                if (userPhotos.length >= 10 && uploadBtn) {
-                    uploadBtn.style.display = 'none';
-                }
-            };
+            reader.onload = (event) => userPhotos.push(event.target.result);
             reader.readAsDataURL(file);
         });
-
-        if (filesToAdd.length > 0) {
-            alert(`Đã thêm thành công ${filesToAdd.length} ảnh kỷ niệm!`);
-        }
+        if (files.length > 0) alert(`Đã thêm ${files.length} ảnh kỷ niệm!`);
     });
 }
 
-// --- 3. LOOP ANIMATION CHÍNH ---
+// --- 3. LOOP ANIMATION (Hoa rơi & Đốm sáng) ---
 function animate() {
     const canvas = document.getElementById(petalCanvasId);
     if (canvas) {
@@ -65,105 +53,147 @@ function animate() {
 }
 animate();
 
-// --- 4. LOGIC TƯƠNG TÁC LÌ XÌ ---
-let autoCloseTimer = null;
-
+// --- 4. GIAO DIỆN 1: TƯƠNG TÁC LÌ XÌ ---
 window.openLixi = () => {
-    // Phát âm thanh xé giấy
-    openLixiSound.play().catch(() => {});
-
+    if (isFireworkSpace) return; 
+    openLixiSound.play().catch(() => { });
     const modal = document.getElementById('wish-modal');
     const wishText = document.getElementById('wish-text');
     const lixiImg = document.getElementById('lixi-display-img');
-    
-    // Chọn lời chúc ngẫu nhiên
-    const randomWish = wishes[Math.floor(Math.random() * wishes.length)];
-    wishText.innerText = randomWish;
 
-    // Hiển thị ảnh kỷ niệm nếu có, nếu không thì dùng ảnh mặc định
+    // Đổ lời chúc vào Modal (Font Dancing Script đã cài ở CSS)
+    wishText.innerText = wishes[Math.floor(Math.random() * wishes.length)];
+    
     if (userPhotos.length > 0) {
-        const randomPhoto = userPhotos[Math.floor(Math.random() * userPhotos.length)];
-        lixiImg.src = randomPhoto;
-        lixiImg.style.borderRadius = "15px"; // Bo góc ảnh kỷ niệm cho đẹp
+        lixiImg.src = userPhotos[Math.floor(Math.random() * userPhotos.length)];
+        lixiImg.style.borderRadius = "15px";
         lixiImg.style.objectFit = "cover";
     } else {
         lixiImg.src = 'assets/images/lixi-open.png';
         lixiImg.style.borderRadius = "0";
     }
-
     modal.classList.add('active');
-
-    // Tự động đóng sau 10 giây
-    if (autoCloseTimer) clearTimeout(autoCloseTimer);
-    autoCloseTimer = setTimeout(() => {
-        window.closeWish();
-    }, 10000); 
 };
 
 window.closeWish = () => {
-    const modal = document.getElementById('wish-modal');
-    if (modal) modal.classList.remove('active');
-    if (autoCloseTimer) {
-        clearTimeout(autoCloseTimer);
-        autoCloseTimer = null;
-    }
+    document.getElementById('wish-modal').classList.remove('active');
 };
 
-let continuousFireworkInterval = null;
-// --- 5. LOGIC BẮN PHÁO HOA 2026 ---
-// --- SỬA LẠI HÀM TRIGGER ---
+// --- 5. GIAO DIỆN 2: PHÁO HOA & CHUYỂN CẢNH (PC OPTIMIZED) ---
+
+/**
+ * BƯỚC 1: TRƯỢT SANG PHẢI
+ * Lướt sang bầu trời, hạ camera xuống -40vh để nhìn thấy chú ngựa đầu tiên.
+ */
 window.triggerFireworks = () => {
-    // ... (Phần ẩn UI và phát nhạc giữ nguyên) ...
-    const jarContainer = document.querySelector('.firework-jars'); 
+    isFireworkSpace = false; 
+    hasStartedShow = false;
+
+    const scene = document.getElementById('scene');
     const fireworkBtn = document.getElementById('firework-trigger-btn');
-    const uploadBtnContainer = document.getElementById('upload-container');
-    const horseImage = document.getElementById('horse-image'); // Lấy ảnh ngựa
+    const uploadBtn = document.getElementById('upload-container');
 
-    if (jarContainer) jarContainer.classList.add('jar-hidden');
+    // Chuyển động lia cam chéo: Sang phải 100vw và hạ thấp cam xuống 40vh
+    scene.style.transform = 'translate(-100vw, -40vh)';
+    
+    // Bật tương tác chuột cho scene để chuẩn bị bắn pháo
+    scene.style.pointerEvents = 'auto';
+
     if (fireworkBtn) fireworkBtn.classList.add('ui-hidden');
-    if (uploadBtnContainer) uploadBtnContainer.classList.add('ui-hidden');
+    if (uploadBtn) uploadBtn.classList.add('ui-hidden');
 
-    tree3D.isFireworkMode = true; 
-    if (tree3D.state === 'TREE') tree3D.toggle(); 
+    setTimeout(() => {
+        isFireworkSpace = true;
+        const hint = document.getElementById('firework-hint');
+        if (hint) hint.classList.remove('hidden');
+    }, 1200);
+
+    // Chuyển cây 3D sang chế độ nổ (Chỉ gọi lệnh toggle bên ngoài)
+    if (tree3D && tree3D.state === 'TREE') tree3D.toggle();
+};
+
+/**
+ * LẮNG NGHE CLICK CHUỘT ĐỂ BẮN PHÁO
+ */
+document.addEventListener('mousedown', (e) => {
+    // Chỉ kích hoạt khi đã ở không gian pháo hoa và chưa nổ chữ
+    if (!isFireworkSpace || hasStartedShow) return;
+    
+    // Né click vào Modal hoặc nút đóng
+    if (e.target.closest('#wish-modal') || e.target.closest('.close-btn')) return;
+
+    startFireworkShow();
+});
+
+/**
+ * BƯỚC 2: BẮN PHÁO & NGƯỚC NHÌN
+ * Đưa tọa độ Y về 0 để camera lia vút từ con ngựa lên đỉnh bầu trời.
+ */
+function startFireworkShow() {
+    hasStartedShow = true;
+    const scene = document.getElementById('scene');
+    const hint = document.getElementById('firework-hint');
+    const horse = document.getElementById('horse-image');
+
+    if (hint) hint.classList.add('hidden');
     fireworkSound.play().catch(() => {});
 
-    // 1. Bắt đầu nổ chữ chính
-    setTimeout(() => {
-        fireworks.explodeText2026(); 
-        if (horseImage) horseImage.classList.add('visible'); // Hiện ngựa mờ ảo sang rõ nét
-    }, 800);
+    // HIỆU ỨNG NGƯỚC NHÌN: Camera lia lên đỉnh bầu trời cao 140vh
+    scene.style.transform = 'translate(-100vw, 0)';
 
-    // 2. Bắt đầu vòng lặp nổ pháo hoa phụ LIÊN TỤC
-    if (continuousFireworkInterval) clearInterval(continuousFireworkInterval);
-    continuousFireworkInterval = setInterval(() => {
-        fireworks.launchFlare();
-    }, 1200);
-    
-    // 3. Kết thúc sau 10 giây
+    // Nổ dòng chữ chính uốn cong
+    fireworks.explodeLunar2026();
+
+    // Hiện ngựa rõ nét
     setTimeout(() => {
-        if (continuousFireworkInterval) {
-            clearInterval(continuousFireworkInterval);
-            continuousFireworkInterval = null;
+        if (horse) horse.classList.add('visible');
+    }, 1500);
+
+    // VÒNG LẶP PHÁO PHỤ: Mix giữa pháo rơi và pháo đa sắc không rơi
+    flareInterval = setInterval(() => {
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight * 0.4;
+
+        if (Math.random() > 0.5) {
+            // Loại 2: Pháo cầu đa sắc, đứng yên mờ dần (MỚI)
+            fireworks.launchNoGravitySphere(x, y);
+        } else {
+            // Loại 1: Pháo sáng vàng, có rơi nhẹ
+            fireworks.launchSphericalFlare(x, y);
         }
-        fireworks.stop(); 
-        if (horseImage) horseImage.classList.remove('visible');
-        
-        tree3D.isFireworkMode = false;
-        if (tree3D.state === 'EXPLODED') tree3D.toggle();
-        if (jarContainer) jarContainer.classList.remove('jar-hidden');
-        if (fireworkBtn) fireworkBtn.classList.remove('ui-hidden');
-        if (uploadBtnContainer) uploadBtnContainer.classList.remove('ui-hidden');
-    }, 10000);
-};
+    }, 1200);
 
-// --- 6. PHÍM TẮT ĐIỀU KHIỂN ---
+    // Xem show trong 18 giây trước khi tự động quay về
+    setTimeout(backToMainInterface, 18000);
+}
+
+/**
+ * BƯỚC 3: QUAY VỀ CÂY ĐÀO
+ */
+function backToMainInterface() {
+    isFireworkSpace = false;
+    hasStartedShow = false;
+    const scene = document.getElementById('scene');
+    const horse = document.getElementById('horse-image');
+
+    if (flareInterval) clearInterval(flareInterval);
+    fireworks.stop();
+    if (horse) horse.classList.remove('visible');
+
+    // Trả về vị trí gốc (0, 0)
+    scene.style.transform = 'translate(0, 0)';
+    
+    // QUAN TRỌNG: Tắt pointer-events của scene để giải phóng chuột cho cây đào 3D xoay
+    scene.style.pointerEvents = 'none';
+
+    document.getElementById('firework-trigger-btn').classList.remove('ui-hidden');
+    document.getElementById('upload-container').classList.remove('ui-hidden');
+
+    if (tree3D && tree3D.state === 'EXPLODED') tree3D.toggle();
+}
+
+// --- 6. PHÍM TẮT (KEYBOARD CONTROL) ---
 document.addEventListener('keydown', (event) => {
-    // Phím SPACE: Đảo ngược trạng thái cây 3D
-    if (event.code === 'Space') {
-        tree3D.toggle();
-    }
-    // Phím ENTER: Bắn pháo hoa nhanh
-    if (event.code === 'Enter') {
-        window.triggerFireworks();
-    }
+    if (event.code === 'Space') tree3D.toggle();
+    if (event.code === 'Enter' && !isFireworkSpace) window.triggerFireworks();
 });

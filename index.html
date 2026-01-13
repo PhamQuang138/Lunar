@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chúc Mừng Năm Mới - Lunar Project</title>
-    
+    <title>Chúc Mừng Năm Mới 2026 - Lunar Project</title>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/TDSLoader.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Pangolin&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/style.css">
@@ -17,10 +19,8 @@
 <body>
     <div id="app-container">
         <canvas id="petal-canvas"></canvas>
-        
-        <div id="tree-container-3d"></div>
 
-        <canvas id="firework-canvas"></canvas>
+        <div id="tree-container-3d"></div>
 
         <main id="scene">
             <section id="tree-section">
@@ -28,23 +28,39 @@
                     <div id="lanterns-wrapper"></div>
                     <div id="envelopes-wrapper"></div>
                 </div>
-                
+
                 <div class="firework-jars">
                     <div class="jar" onclick="triggerFireworks()"></div>
                     <div class="jar" onclick="triggerFireworks()"></div>
                 </div>
             </section>
+
+            <section id="greeting-section">
+                <canvas id="firework-canvas"></canvas>
+                <img src="assets/images/horse-2026.png" id="horse-image" alt="Ngựa 2026">
+            </section>
         </main>
 
-        <div id="firework-trigger-btn" onclick="triggerFireworks()">
+        <div id="firework-hint" class="hidden">Chạm vào màn hình để bắn pháo hoa</div>
+
+        <div id="upload-container">
+            <input type="file" id="photo-upload" accept="image/*" multiple hidden>
+            <button id="upload-btn" onclick="document.getElementById('photo-upload').click()" title="Thêm tối đa 10 ảnh kỷ niệm">
+                <div class="plus-icon">+</div>
+                <span>Thêm ảnh</span>
+            </button>
+        </div>
+
+        <div id="firework-trigger-btn" onclick="triggerFireworks()" title="Bắn pháo hoa 2026">
+            <img src="assets/images/PhaoHoa.png" alt="Firework" style="width: 25px; margin-bottom: 5px;">
             <span>Pháo Hoa</span>
         </div>
 
         <div id="wish-modal">
             <div class="envelope-zoom">
-                <img src="assets/images/lixi-open.png" alt="Lì xì">
+                <img src="assets/images/lixi-open.png" alt="Lì xì" id="lixi-display-img">
                 <p id="wish-text">Chúc mừng năm mới!</p>
-                <button onclick="closeWish()" style="margin-top:15px; padding: 5px 20px; cursor:pointer;">Đóng</button>
+                <button onclick="closeWish()" class="close-btn">Đóng</button>
             </div>
         </div>
     </div>
